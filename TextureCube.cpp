@@ -36,7 +36,6 @@ glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 int main()
 {
 	// glfw: инициализация и конфигурирование
-	//glfwInit();
 	if (!glfwInit()) {
 		fprintf(stderr, "ERROR: could not start GLFW3\n");
 		return 1;
@@ -44,7 +43,6 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
 
 	// glfw: создание окна
 	GLFWwindow* window = glfwCreateWindow(1100, 800, "Triangular Prism", NULL, 0);
@@ -65,8 +63,8 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	// Компилирование нашей шейдерной программы
-	Shader ourShader("6.2.coordinate_systems.vs", "6.2.coordinate_systems.fs");
-	Shader lightingShader("basic_lighting.vs", "basic_lighting.fs");
+	Shader prismShader("texture.vs", "texture.fs");
+	//Shader lightingShader("basic_lighting.vs", "basic_lighting.fs");
 	Shader lampShader("lamp.vs", "lamp.fs");
 
 	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
@@ -127,15 +125,15 @@ int main()
 	glEnableVertexAttribArray(1);
 
 	// 2. Настраиваем VAO света (VBO остается неизменным)
-	unsigned int lightVAO;
-	glGenVertexArrays(1, &lightVAO);
-	glBindVertexArray(lightVAO);
+	//unsigned int lightVAO;
+	//glGenVertexArrays(1, &lightVAO);
+	//glBindVertexArray(lightVAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	//glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
 	// Обратите внимание, что мы обновляем шаг атрибута положения лампы, чтобы отразить обновленные данные буфера
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	//glEnableVertexAttribArray(0);
 
 	// Загрузка и создание текстур
 	unsigned int texture1;
@@ -167,8 +165,8 @@ int main()
 	}
 
 	// Указываем OpenGL, какой сэмплер к какому текстурному блоку принадлежит (это нужно сделать единожды)
-	ourShader.use();
-	ourShader.setInt("texture", 0);
+	prismShader.use();
+	prismShader.setInt("texture", 0);
 
 	// Цикл рендеринга
 	while (!glfwWindowShouldClose(window))
@@ -190,41 +188,41 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, texture1);
 
 		// Убеждаемся, что активировали шейдер прежде, чем настраивать uniform-переменные/объекты_рисования
-		lightingShader.use();
-		lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-		lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		lightingShader.setVec3("lightPos", lightPos);
+		//lightingShader.use();
+		//lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+		//lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		//lightingShader.setVec3("lightPos", lightPos);
 
 		// Активируем шейдер
-		ourShader.use();
+		prismShader.use();
 
-		//// Создаем преобразование
-		//glm::mat4 model = glm::mat4(1.0f); // сначала инициализируем единичную матрицу
-		//glm::mat4 view = glm::mat4(1.0f);
-		//glm::mat4 projection = glm::mat4(1.0f);
-		////model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-		//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.5f));
-		//projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		// Создаем преобразование
+		glm::mat4 model = glm::mat4(1.0f); // сначала инициализируем единичную матрицу
+		glm::mat4 view = glm::mat4(1.0f);
+		glm::mat4 projection = glm::mat4(1.0f);
+		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+		view = camera.GetViewMatrix();
+		projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
 
 		// Преобразования Вида / Проекции
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
-		glm::mat4 view = camera.GetViewMatrix();
-		lightingShader.setMat4("projection", projection);
-		lightingShader.setMat4("view", view);
+		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
+		//glm::mat4 view = camera.GetViewMatrix();
+		//lightingShader.setMat4("projection", projection);
+		//lightingShader.setMat4("view", view);
 
 		// Мировое преобразование
-		glm::mat4 model = glm::mat4(1.0f);
-		lightingShader.setMat4("model", model);
+		//glm::mat4 model = glm::mat4(1.0f);
+		//lightingShader.setMat4("model", model);
 
 		// Получаем местоположение uniform-матриц...
-		unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
-		unsigned int viewLoc = glGetUniformLocation(ourShader.ID, "view");
+		unsigned int modelLoc = glGetUniformLocation(prismShader.ID, "model");
+		unsigned int viewLoc = glGetUniformLocation(prismShader.ID, "view");
 		// ...передаем их в шейдеры (разными способами)
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
 
 		// Примечание: В настоящее время мы устанавливаем матрицу проекции для каждого кадра, но поскольку матрица проекции редко меняется, то рекомендуется устанавливать её (единожды) вне основного цикла
-		ourShader.setMat4("projection", projection);
+		prismShader.setMat4("projection", projection);
 
 		// Рендерим ящик
 		glBindVertexArray(VAO);
@@ -239,8 +237,8 @@ int main()
 		model = glm::scale(model, glm::vec3(0.2f)); // куб меньшего размера
 		lampShader.setMat4("model", model);
 
-		glBindVertexArray(lightVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		//glBindVertexArray(lightVAO);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// glfw: обмен содержимым front- и back- буферов. Отслеживание событий ввода\вывода (была ли нажата/отпущена кнопка, перемещен курсор мыши и т.п.)
 		glfwSwapBuffers(window);

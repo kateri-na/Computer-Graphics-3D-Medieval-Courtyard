@@ -16,16 +16,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="6.2.coordinate_systems.fs">
+    <None Include="texture.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="6.2.coordinate_systems.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="basic_lighting.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="basic_lighting.vs">
+    <None Include="texture.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="lamp.fs">

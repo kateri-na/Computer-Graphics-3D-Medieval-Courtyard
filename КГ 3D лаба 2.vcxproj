@@ -128,10 +128,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="6.2.coordinate_systems.fs" />
-    <None Include="6.2.coordinate_systems.vs" />
-    <None Include="basic_lighting.fs" />
-    <None Include="basic_lighting.vs" />
+    <None Include="texture.fs" />
+    <None Include="texture.vs" />
     <None Include="lamp.fs" />
     <None Include="lamp.vs" />
     <None Include="packages.config" />
