@@ -22,12 +22,6 @@
     <None Include="texture.vs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="lamp.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="lamp.vs">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TextureCube.cpp">

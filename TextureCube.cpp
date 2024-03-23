@@ -21,7 +21,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // Камера
-Camera camera(glm::vec3(0.0f, 0.0f, 3.5f));
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -64,8 +64,6 @@ int main()
 
 	// Компилирование нашей шейдерной программы
 	Shader prismShader("texture.vs", "texture.fs");
-	//Shader lightingShader("basic_lighting.vs", "basic_lighting.fs");
-	Shader lampShader("lamp.vs", "lamp.fs");
 
 	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
 	float vertices[] = {
@@ -124,21 +122,10 @@ int main()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	// 2. Настраиваем VAO света (VBO остается неизменным)
-	//unsigned int lightVAO;
-	//glGenVertexArrays(1, &lightVAO);
-	//glBindVertexArray(lightVAO);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	// Обратите внимание, что мы обновляем шаг атрибута положения лампы, чтобы отразить обновленные данные буфера
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	//glEnableVertexAttribArray(0);
-
 	// Загрузка и создание текстур
 	unsigned int texture1;
 
-	// Текстура №1 - цветок
+	// Текстура 
 	glGenTextures(1, &texture1);
 	glBindTexture(GL_TEXTURE_2D, texture1);
 
@@ -187,12 +174,6 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
 
-		// Убеждаемся, что активировали шейдер прежде, чем настраивать uniform-переменные/объекты_рисования
-		//lightingShader.use();
-		//lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-		//lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		//lightingShader.setVec3("lightPos", lightPos);
-
 		// Активируем шейдер
 		prismShader.use();
 
@@ -203,16 +184,6 @@ int main()
 		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
-
-		// Преобразования Вида / Проекции
-		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
-		//glm::mat4 view = camera.GetViewMatrix();
-		//lightingShader.setMat4("projection", projection);
-		//lightingShader.setMat4("view", view);
-
-		// Мировое преобразование
-		//glm::mat4 model = glm::mat4(1.0f);
-		//lightingShader.setMat4("model", model);
 
 		// Получаем местоположение uniform-матриц...
 		unsigned int modelLoc = glGetUniformLocation(prismShader.ID, "model");
@@ -226,19 +197,7 @@ int main()
 
 		// Рендерим ящик
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-
-		// Также отрисовываем наш объект-"лампочку" 
-		lampShader.use();
-		lampShader.setMat4("projection", projection);
-		lampShader.setMat4("view", view);
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f)); // куб меньшего размера
-		lampShader.setMat4("model", model);
-
-		//glBindVertexArray(lightVAO);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawArrays(GL_TRIANGLES, 0, 24);
 
 		// glfw: обмен содержимым front- и back- буферов. Отслеживание событий ввода\вывода (была ли нажата/отпущена кнопка, перемещен курсор мыши и т.п.)
 		glfwSwapBuffers(window);

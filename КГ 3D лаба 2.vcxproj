@@ -130,8 +130,6 @@
   <ItemGroup>
     <None Include="texture.fs" />
     <None Include="texture.vs" />
-    <None Include="lamp.fs" />
-    <None Include="lamp.vs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
