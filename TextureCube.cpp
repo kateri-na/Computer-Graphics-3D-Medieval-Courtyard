@@ -4,12 +4,18 @@
 #include<GL/glew.h>
 #include<GL/glut.h>
 #include<GLFW/glfw3.h>
-#include"shader_s.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include<soil.h>
+
 #include "camera.h"
+#include "shader_s.h"
+#include "Mesh.h"
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
