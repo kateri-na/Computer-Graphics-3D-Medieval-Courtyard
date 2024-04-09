@@ -64,6 +64,8 @@ int main()
 
 	// Компилирование нашей шейдерной программы
 	Shader prismShader("texture.vs", "texture.fs");
+	Shader sceneShader("scene.vs", "scene.fs");
+
 
 	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
 	float vertices[] = {
@@ -98,18 +100,27 @@ int main()
 		-0.5f, 0.0f,  0.5f,  1.0f, 0.0f,
 
 	};
+
+	float scenePoints[] = {
+		1.0f,  1.0f,  0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, //верхняя правая вершина
+		1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,//нижняя правая вершина
+		-1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f,//нижняя левая вершина 
+		-1.0f, 1.0f,  0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,//верхняя левая вершина
+	};
+
 	unsigned int indices[] = {
 		0, 1, 3, // первый треугольник
 		1, 2, 3  // второй треугольник
 	};
-	unsigned int VBO, VAO, EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
+
+	unsigned int VBO_prism, VAO_prism, EBO;
+	glGenVertexArrays(1, &VAO_prism);
+	glGenBuffers(1, &VBO_prism);
 	glGenBuffers(1, &EBO);
 
-	glBindVertexArray(VAO);
+	glBindVertexArray(VAO_prism);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_prism);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -122,6 +133,22 @@ int main()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+	//-----------------------------------------------------------------------------------------------
+	GLuint vbo, vao;
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(scenePoints), scenePoints, GL_STATIC_DRAW);
+
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	// Координатные атрибуты
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// Цветовые атрибуты
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	
 	// Загрузка и создание текстур
 	unsigned int texture1;
 
@@ -181,7 +208,7 @@ int main()
 		glm::mat4 model = glm::mat4(1.0f); // сначала инициализируем единичную матрицу
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
-		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
 
@@ -196,8 +223,21 @@ int main()
 		prismShader.setMat4("projection", projection);
 
 		// Рендерим ящик
-		glBindVertexArray(VAO);
+		glBindVertexArray(VAO_prism);
 		glDrawArrays(GL_TRIANGLES, 0, 24);
+
+		sceneShader.use();
+
+		unsigned int modelLocScene = glGetUniformLocation(sceneShader.ID, "model");
+		unsigned int viewLocScene = glGetUniformLocation(sceneShader.ID, "view");
+		// ...передаем их в шейдеры (разными способами)
+		glUniformMatrix4fv(modelLocScene, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(viewLocScene, 1, GL_FALSE, &view[0][0]);
+
+		sceneShader.setMat4("projection", projection);
+
+		glBindVertexArray(vao);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// glfw: обмен содержимым front- и back- буферов. Отслеживание событий ввода\вывода (была ли нажата/отпущена кнопка, перемещен курсор мыши и т.п.)
 		glfwSwapBuffers(window);
@@ -205,8 +245,8 @@ int main()
 	}
 
 	// Опционально: освобождаем все ресурсы, как только они выполнили свое предназначение
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
+	glDeleteVertexArrays(1, &VAO_prism);
+	glDeleteBuffers(1, &VBO_prism);
 	glDeleteBuffers(1, &EBO);
 
 	// glfw: завершение, освобождение всех выделенных ранее GLFW-ресурсов
