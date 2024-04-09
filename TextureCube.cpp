@@ -22,12 +22,16 @@ void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+void loadscene(std::string path, vector<Mesh>& meshes);
+void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformation, vector<Mesh>& meshes);
+
+
 // Константы
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // Камера
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 2.0f, -5.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -64,6 +68,9 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+
+	// Сообщаем GLFW, чтобы он захватил наш курсор
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Конфигурирование глобального состояния OpenGL
 	glEnable(GL_DEPTH_TEST);
@@ -307,4 +314,63 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(yoffset);
+}
+
+// loading model from the obj file
+void loadscene(std::string path, vector<Mesh>& meshes)
+{
+	Assimp::Importer importer;
+
+	const aiScene* scene = importer.ReadFile(path,
+		aiProcess_CalcTangentSpace |
+		aiProcess_Triangulate |
+		aiProcess_SortByPType |
+		aiProcess_FlipUVs);
+
+	// If the import failed, report it
+	if (nullptr == scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
+		std::cout << importer.GetErrorString() << '\n';
+		std::cout << path << " ERROR LOADING MODEL\n";
+	}
+	else
+		processNode(scene->mRootNode, scene, glm::mat4(1.0f), meshes);
+}
+
+// prosses all models from the given file from assimp format to glm format
+// go through each row and column and set a correct value
+void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformation, vector<Mesh>& meshes)
+{
+	glm::mat4 transformation;
+	//first row
+	transformation[0][0] = node->mTransformation.a1;
+	transformation[0][1] = node->mTransformation.b1;
+	transformation[0][2] = node->mTransformation.c1;
+	transformation[0][3] = node->mTransformation.d1;
+	//second row
+	transformation[1][0] = node->mTransformation.a2;
+	transformation[1][1] = node->mTransformation.b2;
+	transformation[1][2] = node->mTransformation.c2;
+	transformation[1][3] = node->mTransformation.d3;
+	//third row
+	transformation[2][0] = node->mTransformation.a3;
+	transformation[2][1] = node->mTransformation.b3;
+	transformation[2][2] = node->mTransformation.c3;
+	transformation[2][3] = node->mTransformation.d3;
+	//fourth row
+	transformation[3][0] = node->mTransformation.a3;
+	transformation[3][1] = node->mTransformation.b3;
+	transformation[3][2] = node->mTransformation.c3;
+	transformation[3][3] = node->mTransformation.d3;
+
+	transformation = parentTransformation * transformation;
+
+	for (size_t i = 0; i < node->mNumMeshes; i++)
+	{
+		Mesh mesh = processMesh(scene->mMeshes[node->mMeshes[i]]);
+		mesh.transformation = transformation;
+		meshes.push_back(mesh);
+	}
+
+	for (size_t i = 0; i < node->mNumChildren; i++)
+		processNode(node->mChildren[i], scene, transformation, meshes);
 }
