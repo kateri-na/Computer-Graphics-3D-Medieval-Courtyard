@@ -28,6 +28,12 @@
     <None Include="scene.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="cubemap.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="cubemap.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TextureCube.cpp">
