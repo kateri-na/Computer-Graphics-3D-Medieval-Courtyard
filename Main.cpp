@@ -41,7 +41,8 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // Освещение
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(1.5f, -1.0f, 0.0f);
+glm::vec3 lightColor(vec3(1.0, 0.99, 0.82));
 
 int main()
 {
@@ -55,7 +56,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// glfw: создание окна
-	GLFWwindow* window = glfwCreateWindow(1400, 1100, "Triangular Prism", NULL, 0);
+	GLFWwindow* window = glfwCreateWindow(1400, 1100, "Medieval Castle Panina", NULL, 0);
 	if (!window) {
 		fprintf(stderr, "ERROR: could not open window with GLFW3\n");
 		glfwTerminate();
@@ -79,7 +80,10 @@ int main()
 
 	Shader cubemapShader("cubemap.vs", "cubemap.fs");
 	Shader prismShader("texture.vs", "texture.fs");
+	Shader lampShader("lamp.vs", "lamp.fs");
 
+	vector<Mesh> postLamp;
+	loadscene("lamp_post.obj", postLamp);
 
 	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
 	float verticesPrism[] = {
@@ -164,6 +168,8 @@ int main()
 		-1.0f, -1.0f,  1.0f,
 		 1.0f, -1.0f,  1.0f
 	};
+
+	//------------------------------------------------------------prism----------------------------------------------
 	unsigned int VBO_prism, VAO_prism, EBO;
 	glGenVertexArrays(1, &VAO_prism);
 	glGenBuffers(1, &VBO_prism);
@@ -217,7 +223,7 @@ int main()
 	prismShader.use();
 	prismShader.setInt("texture", 0);
 
-	//-------------------------------------------------------------------------------------------
+	//--------------------------------------skybox-----------------------------------------------------
 
 
 	// cubemap (skybox) VAO, VBO and loading faces textures
@@ -263,28 +269,38 @@ int main()
 
 		// Активируем шейдер
 		prismShader.use();
-
 		// Создаем преобразование
 		glm::mat4 model = glm::mat4(1.0f); // сначала инициализируем единичную матрицу
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
+		prismShader.setVec3("lightColor", lightColor);
+		prismShader.setVec3("lightPos", lightPos);
 		model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
-
 		// Получаем местоположение uniform-матриц...
 		unsigned int modelLoc = glGetUniformLocation(prismShader.ID, "model");
 		unsigned int viewLoc = glGetUniformLocation(prismShader.ID, "view");
 		// ...передаем их в шейдеры (разными способами)
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-
 		// Примечание: В настоящее время мы устанавливаем матрицу проекции для каждого кадра, но поскольку матрица проекции редко меняется, то рекомендуется устанавливать её (единожды) вне основного цикла
 		prismShader.setMat4("projection", projection);
-
 		// Рендерим ящик
 		glBindVertexArray(VAO_prism);
 		glDrawArrays(GL_TRIANGLES, 0, 24);
+
+		lampShader.use();
+		lampShader.setVec3("lightColor", lightColor);
+		lampShader.setVec3("lightPos", lightPos + vec3(1, 1, 1));
+		lampShader.setMat4("projection", projection);
+		lampShader.setMat4("view", view);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.4f));;
+		lampShader.setMat4("model", model);
+		for (auto mesh : postLamp)
+			mesh.Draw();
 
 		// Кубомапа отрисовывается последней
 		glDepthFunc(GL_LEQUAL);
