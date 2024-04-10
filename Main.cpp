@@ -20,10 +20,10 @@ void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-void loadscene(std::string path, vector<Mesh>& meshes);
-void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformation, vector<Mesh>& meshes);
-
 unsigned int loadCubemap(vector<std::string> faces);
+
+void loadOBJ(std::string path, vector<Mesh>& meshes);
+void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformation, vector<Mesh>& meshes);
 Mesh processMesh(aiMesh* mesh);
 
 // Константы
@@ -81,48 +81,12 @@ int main()
 	Shader cubemapShader("cubemap.vs", "cubemap.fs");
 	Shader prismShader("texture.vs", "texture.fs");
 	Shader lampShader("lamp.vs", "lamp.fs");
+	Shader knightShader("knight.vs", "knight.fs");
 
 	vector<Mesh> postLamp;
-	loadscene("lamp_post.obj", postLamp);
-
-	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
-	float verticesPrism[] = {
-		// координаты        // текстурные координаты
-		0.5f, 0.5f, 0.0f,  0.0f, 0.0f, //1
-		0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
-		0.5f,  0.0f, 0.5f,  1.0f, 1.0f,
-		//2
-		0.5f, -0.5f,  0.0f,  0.0f, 0.0f, //B
-		-0.5f, -0.5f,  0.0f,  1.0f, 0.0f, //D
-		-0.5f,  0.0f,  0.5f,  1.0f, 1.0f, //F
-		-0.5f,  0.0f,  0.5f,  1.0f, 1.0f, //F
-		0.5f,  0.0f,  0.5f,  0.0f, 1.0f, //C
-		0.5f, -0.5f,  0.0f,  0.0f, 0.0f, //B
-		//3
-		0.5f,  0.5f,  0.0f,  1.0f, 0.0f, //A
-	   -0.5f,  0.5f,  0.0f,  1.0f, 1.0f, //E
-	   -0.5f,  0.0f,  0.5f,  0.0f, 1.0f, //F
-	   -0.5f,  0.0f,  0.5f,  0.0f, 1.0f, //F
-		0.5f,  0.0f,  0.5f,  0.0f, 0.0f, //C
-		0.5f,  0.5f,  0.0f,  1.0f, 0.0f, //A
-		//4
-		0.5f,  0.5f,  0.0f,  1.0f, 0.0f, //A
-		-0.5f,  0.5f,  0.0f,  1.0f, 1.0f, //E
-		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, //D
-		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, //D
-		0.5f, -0.5f,  0.0f,  0.0f, 0.0f, //B
-		0.5f,  0.5f,  0.0f,  1.0f, 0.0f, //A
-
-		-0.5f, 0.5f, 0.0f,  0.0f, 1.0f, //5
-		-0.5f, -0.5f, 0.0f,  1.0f, 1.0f,
-		-0.5f, 0.0f,  0.5f,  1.0f, 0.0f,
-
-	};
-	
-	unsigned int indices[] = {
-		0, 1, 3, // первый треугольник
-		1, 2, 3  // второй треугольник
-	};
+	loadOBJ("lamp_post.obj", postLamp);
+	vector<Mesh> knight;
+	loadOBJ("Knight.obj", knight);
 
 	//cubemap - our scene 
 	float cubemapVertices[] = {
@@ -169,46 +133,19 @@ int main()
 		 1.0f, -1.0f,  1.0f
 	};
 
-	//------------------------------------------------------------prism----------------------------------------------
-	unsigned int VBO_prism, VAO_prism, EBO;
-	glGenVertexArrays(1, &VAO_prism);
-	glGenBuffers(1, &VBO_prism);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO_prism);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_prism);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPrism), verticesPrism, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	// Координатные атрибуты
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// Цветовые атрибуты
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);	
-
 	// Загрузка и создание текстур
 	unsigned int texture1;
-
-	// Текстура 
 	glGenTextures(1, &texture1);
 	glBindTexture(GL_TEXTURE_2D, texture1);
-
 	// Установка параметров наложения текстуры
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
 	// Установка параметров фильтрации текстуры
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
 	// Загрузка изображения, создание текстуры и генерирование мипмап-уровней
 	int width, height, nrChannels;
-	//stbi_set_flip_vertically_on_load(true); // указываем stb_image.h на то, чтобы перевернуть для загруженной текстуры ось y
-	unsigned char* data = SOIL_load_image("Textures/texture2.png", &width, &height, 0, SOIL_LOAD_RGB);
+	unsigned char* data = SOIL_load_image("Textures/wood.png", &width, &height, 0, SOIL_LOAD_RGB);
 	if (data)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -220,11 +157,8 @@ int main()
 	}	
 
 	// Указываем OpenGL, какой сэмплер к какому текстурному блоку принадлежит (это нужно сделать единожды)
-	prismShader.use();
-	prismShader.setInt("texture", 0);
-
-	//--------------------------------------skybox-----------------------------------------------------
-
+	knightShader.use();
+	knightShader.setInt("texture", 0);
 
 	// cubemap (skybox) VAO, VBO and loading faces textures
 	unsigned int cubemapVAO, cubemapVBO;
@@ -267,28 +201,26 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
 
-		// Активируем шейдер
-		prismShader.use();
-		// Создаем преобразование
-		glm::mat4 model = glm::mat4(1.0f); // сначала инициализируем единичную матрицу
+		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
-		prismShader.setVec3("lightColor", lightColor);
-		prismShader.setVec3("lightPos", lightPos);
-		model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
-		// Получаем местоположение uniform-матриц...
-		unsigned int modelLoc = glGetUniformLocation(prismShader.ID, "model");
-		unsigned int viewLoc = glGetUniformLocation(prismShader.ID, "view");
-		// ...передаем их в шейдеры (разными способами)
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-		// Примечание: В настоящее время мы устанавливаем матрицу проекции для каждого кадра, но поскольку матрица проекции редко меняется, то рекомендуется устанавливать её (единожды) вне основного цикла
-		prismShader.setMat4("projection", projection);
-		// Рендерим ящик
-		glBindVertexArray(VAO_prism);
-		glDrawArrays(GL_TRIANGLES, 0, 24);
+
+		knightShader.use();
+		//glBindTexture(GL_TEXTURE_2D, texture);
+		knightShader.setVec3("lightColor", lightColor);
+		knightShader.setVec3("lightPos", lightPos);
+		knightShader.setMat4("projection", projection);
+		knightShader.setMat4("view", view);
+
+		// Мировое преобразование
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, vec3(0.0f, -1.0f, 0.4f));
+		model = glm::scale(model, glm::vec3(0.01f));
+		knightShader.setMat4("model", model);
+		for (auto mesh : knight)
+			mesh.Draw();
 
 		lampShader.use();
 		lampShader.setVec3("lightColor", lightColor);
@@ -302,7 +234,6 @@ int main()
 		for (auto mesh : postLamp)
 			mesh.Draw();
 
-		// Кубомапа отрисовывается последней
 		glDepthFunc(GL_LEQUAL);
 		cubemapShader.use();
 		view = glm::mat4(glm::mat3(view));
@@ -321,9 +252,6 @@ int main()
 	}
 
 	// Опционально: освобождаем все ресурсы, как только они выполнили свое предназначение
-	glDeleteVertexArrays(1, &VAO_prism);
-	glDeleteBuffers(1, &VBO_prism);
-	glDeleteBuffers(1, &EBO);
 	glDeleteBuffers(1, &cubemapVBO);
 
 	// glfw: завершение, освобождение всех выделенных ранее GLFW-ресурсов
@@ -411,35 +339,8 @@ unsigned int loadCubemap(vector<std::string> faces)
 	return textureID;
 }
 
-
-Mesh processMesh(aiMesh* mesh)
-{
-	vector<vec3> vertices;
-	vector<vec3> normals;
-	vector<vec2> texcoords;
-	vector<uint32_t> indices;
-	for (size_t i = 0; i < mesh->mNumVertices; i++)
-	{
-		aiVector3D vec = mesh->mVertices[i];
-		aiVector3D norm = mesh->mNormals[i];
-		aiVector3D tex = mesh->mTextureCoords[0][i];
-		vertices.push_back(vec3(vec.x, vec.y, vec.z));
-		normals.push_back(vec3(norm.x, norm.y, norm.z));
-		texcoords.push_back(vec2(tex.x, tex.y));
-	}
-	for (size_t i = 0; i < mesh->mNumFaces; i++)
-	{
-		aiFace face = mesh->mFaces[i];
-		for (size_t j = 0; j < face.mNumIndices; j++)
-			indices.push_back(face.mIndices[j]);
-	}
-
-	Mesh* res = new Mesh;
-	return res->Create(vertices, indices, normals, texcoords);
-}
-
 // loading model from the obj file
-void loadscene(std::string path, vector<Mesh>& meshes)
+void loadOBJ(std::string path, vector<Mesh>& meshes)
 {
 	Assimp::Importer importer;
 
@@ -495,4 +396,30 @@ void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformat
 
 	for (size_t i = 0; i < node->mNumChildren; i++)
 		processNode(node->mChildren[i], scene, transformation, meshes);
+}
+
+Mesh processMesh(aiMesh* mesh)
+{
+	vector<vec3> vertices;
+	vector<vec3> normals;
+	vector<vec2> texcoords;
+	vector<uint32_t> indices;
+	for (size_t i = 0; i < mesh->mNumVertices; i++)
+	{
+		aiVector3D vec = mesh->mVertices[i];
+		aiVector3D norm = mesh->mNormals[i];
+		aiVector3D tex = mesh->mTextureCoords[0][i];
+		vertices.push_back(vec3(vec.x, vec.y, vec.z));
+		normals.push_back(vec3(norm.x, norm.y, norm.z));
+		texcoords.push_back(vec2(tex.x, tex.y));
+	}
+	for (size_t i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace face = mesh->mFaces[i];
+		for (size_t j = 0; j < face.mNumIndices; j++)
+			indices.push_back(face.mIndices[j]);
+	}
+
+	Mesh* res = new Mesh;
+	return res->Create(vertices, indices, normals, texcoords);
 }
