@@ -25,13 +25,15 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void loadscene(std::string path, vector<Mesh>& meshes);
 void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformation, vector<Mesh>& meshes);
 
+unsigned int loadCubemap(vector<std::string> faces);
+Mesh processMesh(aiMesh* mesh);
 
 // Константы
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // Камера
-Camera camera(glm::vec3(0.0f, 2.0f, -5.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -79,7 +81,6 @@ int main()
 
 	Shader cubemapShader("cubemap.vs", "cubemap.fs");
 	Shader prismShader("texture.vs", "texture.fs");
-	Shader sceneShader("scene.vs", "scene.fs");
 
 
 	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
@@ -165,30 +166,6 @@ int main()
 		-1.0f, -1.0f,  1.0f,
 		 1.0f, -1.0f,  1.0f
 	};
-
-	// cubemap (skybox) VAO, VBO and loading faces textures
-	unsigned int cubemapVAO, cubemapVBO;
-	glGenVertexArrays(1, &cubemapVAO);
-	glGenBuffers(1, &cubemapVBO);
-	glBindVertexArray(cubemapVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, cubemapVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubemapVertices), &cubemapVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	vector<std::string> cubemapFaces
-	{
-		"Textures/right.png",
-		"Textures/left.png",
-		"Textures/top.png",
-		"Textures/bottom.png",
-		"Textures/front.png",
-		"Textures/back.png"
-	};
-	unsigned int cubemapTexture = loadCubemap(cubemapFaces);
-	cubemapShader.use();
-	cubemapShader.setInt("cubemap", 0);
-	//-------------------------------------------------------------------------------------------
-
 	unsigned int VBO_prism, VAO_prism, EBO;
 	glGenVertexArrays(1, &VAO_prism);
 	glGenBuffers(1, &VBO_prism);
@@ -236,13 +213,36 @@ int main()
 	else
 	{
 		std::cout << "Failed to load texture" << std::endl;
-	}
-	//--------------------------------------------------------------------------------------------------------------------------------
-	
+	}	
 
 	// Указываем OpenGL, какой сэмплер к какому текстурному блоку принадлежит (это нужно сделать единожды)
 	prismShader.use();
 	prismShader.setInt("texture", 0);
+
+	//-------------------------------------------------------------------------------------------
+
+
+	// cubemap (skybox) VAO, VBO and loading faces textures
+	unsigned int cubemapVAO, cubemapVBO;
+	glGenVertexArrays(1, &cubemapVAO);
+	glGenBuffers(1, &cubemapVBO);
+	glBindVertexArray(cubemapVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, cubemapVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubemapVertices), &cubemapVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	vector<std::string> cubemapFaces
+	{
+		"Textures/right.png",
+		"Textures/left.png",
+		"Textures/top.png",
+		"Textures/bottom.png",
+		"Textures/back.png",
+		"Textures/front.png"
+	};
+	unsigned int cubemapTexture = loadCubemap(cubemapFaces);
+	cubemapShader.use();
+	cubemapShader.setInt("cubemap", 0);
 
 	// Цикл рендеринга
 	while (!glfwWindowShouldClose(window))
@@ -288,18 +288,18 @@ int main()
 		glBindVertexArray(VAO_prism);
 		glDrawArrays(GL_TRIANGLES, 0, 24);
 
-		sceneShader.use();
-
-		unsigned int modelLocScene = glGetUniformLocation(sceneShader.ID, "model");
-		unsigned int viewLocScene = glGetUniformLocation(sceneShader.ID, "view");
-		// ...передаем их в шейдеры (разными способами)
-		glUniformMatrix4fv(modelLocScene, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(viewLocScene, 1, GL_FALSE, &view[0][0]);
-
-		sceneShader.setMat4("projection", projection);
-
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		// Кубомапа отрисовывается последней
+		glDepthFunc(GL_LEQUAL);
+		cubemapShader.use();
+		view = glm::mat4(glm::mat3(view));
+		cubemapShader.setMat4("view", view);
+		cubemapShader.setMat4("projection", projection);
+		glBindVertexArray(cubemapVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+		glDepthFunc(GL_LESS);
 
 		// glfw: обмен содержимым front- и back- буферов. Отслеживание событий ввода\вывода (была ли нажата/отпущена кнопка, перемещен курсор мыши и т.п.)
 		glfwSwapBuffers(window);
@@ -310,6 +310,7 @@ int main()
 	glDeleteVertexArrays(1, &VAO_prism);
 	glDeleteBuffers(1, &VBO_prism);
 	glDeleteBuffers(1, &EBO);
+	glDeleteBuffers(1, &cubemapVBO);
 
 	// glfw: завершение, освобождение всех выделенных ранее GLFW-ресурсов
 	glfwTerminate();
@@ -363,6 +364,32 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(yoffset);
+}
+
+Mesh processMesh(aiMesh* mesh)
+{
+	vector<vec3> vertices;
+	vector<vec3> normals;
+	vector<vec2> texcoords;
+	vector<uint32_t> indices;
+	for (size_t i = 0; i < mesh->mNumVertices; i++)
+	{
+		aiVector3D vec = mesh->mVertices[i];
+		aiVector3D norm = mesh->mNormals[i];
+		aiVector3D tex = mesh->mTextureCoords[0][i];
+		vertices.push_back(vec3(vec.x, vec.y, vec.z));
+		normals.push_back(vec3(norm.x, norm.y, norm.z));
+		texcoords.push_back(vec2(tex.x, tex.y));
+	}
+	for (size_t i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace face = mesh->mFaces[i];
+		for (size_t j = 0; j < face.mNumIndices; j++)
+			indices.push_back(face.mIndices[j]);
+	}
+
+	Mesh* res = new Mesh;
+	return res->Create(vertices, indices, normals, texcoords);
 }
 
 // loading model from the obj file
