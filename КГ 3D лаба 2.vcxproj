@@ -130,14 +130,12 @@
   <ItemGroup>
     <None Include="cubemap.fs" />
     <None Include="cubemap.vs" />
-    <None Include="scene.fs" />
-    <None Include="scene.vs" />
     <None Include="texture.fs" />
     <None Include="texture.vs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TextureCube.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
