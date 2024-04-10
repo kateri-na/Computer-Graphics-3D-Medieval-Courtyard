@@ -76,12 +76,14 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	// Компилирование нашей шейдерной программы
+
+	Shader cubemapShader("cubemap.vs", "cubemap.fs");
 	Shader prismShader("texture.vs", "texture.fs");
 	Shader sceneShader("scene.vs", "scene.fs");
 
 
 	// Указание вершин (и буфера(ов)) и настройка вершинных атрибутов
-	float vertices[] = {
+	float verticesPrism[] = {
 		// координаты        // текстурные координаты
 		0.5f, 0.5f, 0.0f,  0.0f, 0.0f, //1
 		0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
@@ -113,18 +115,79 @@ int main()
 		-0.5f, 0.0f,  0.5f,  1.0f, 0.0f,
 
 	};
-
-	float scenePoints[] = {
-		1.0f,  1.0f,  0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, //верхняя правая вершина
-		1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,//нижняя правая вершина
-		-1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f,//нижняя левая вершина 
-		-1.0f, 1.0f,  0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,//верхняя левая вершина
-	};
-
+	
 	unsigned int indices[] = {
 		0, 1, 3, // первый треугольник
 		1, 2, 3  // второй треугольник
 	};
+
+	//cubemap - our scene 
+	float cubemapVertices[] = {
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	// cubemap (skybox) VAO, VBO and loading faces textures
+	unsigned int cubemapVAO, cubemapVBO;
+	glGenVertexArrays(1, &cubemapVAO);
+	glGenBuffers(1, &cubemapVBO);
+	glBindVertexArray(cubemapVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, cubemapVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubemapVertices), &cubemapVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	vector<std::string> cubemapFaces
+	{
+		"Textures/right.png",
+		"Textures/left.png",
+		"Textures/top.png",
+		"Textures/bottom.png",
+		"Textures/front.png",
+		"Textures/back.png"
+	};
+	unsigned int cubemapTexture = loadCubemap(cubemapFaces);
+	cubemapShader.use();
+	cubemapShader.setInt("cubemap", 0);
+	//-------------------------------------------------------------------------------------------
 
 	unsigned int VBO_prism, VAO_prism, EBO;
 	glGenVertexArrays(1, &VAO_prism);
@@ -134,7 +197,7 @@ int main()
 	glBindVertexArray(VAO_prism);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_prism);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPrism), verticesPrism, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
@@ -144,24 +207,8 @@ int main()
 	glEnableVertexAttribArray(0);
 	// Цветовые атрибуты
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(1);	
 
-	//-----------------------------------------------------------------------------------------------
-	GLuint vbo, vao;
-	glGenVertexArrays(1, &vao);
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(scenePoints), scenePoints, GL_STATIC_DRAW);
-
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	// Координатные атрибуты
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// Цветовые атрибуты
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	
 	// Загрузка и создание текстур
 	unsigned int texture1;
 
@@ -190,6 +237,8 @@ int main()
 	{
 		std::cout << "Failed to load texture" << std::endl;
 	}
+	//--------------------------------------------------------------------------------------------------------------------------------
+	
 
 	// Указываем OpenGL, какой сэмплер к какому текстурному блоку принадлежит (это нужно сделать единожды)
 	prismShader.use();
@@ -373,4 +422,35 @@ void processNode(aiNode* node, const aiScene* scene, glm::mat4 parentTransformat
 
 	for (size_t i = 0; i < node->mNumChildren; i++)
 		processNode(node->mChildren[i], scene, transformation, meshes);
+}
+
+//faces contain the location of all textures, needed for cubemap 
+unsigned int loadCubemap(vector<std::string> faces)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char* data = SOIL_load_image(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+			);
+			SOIL_free_image_data(data);
+		}
+		else
+		{
+			std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+			SOIL_free_image_data(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	return textureID;
 }
