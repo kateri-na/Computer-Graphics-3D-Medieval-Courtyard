@@ -79,7 +79,6 @@ int main()
 	// Компилирование нашей шейдерной программы
 
 	Shader cubemapShader("cubemap.vs", "cubemap.fs");
-	Shader prismShader("texture.vs", "texture.fs");
 	Shader lampShader("lamp.vs", "lamp.fs");
 	Shader knightShader("knight.vs", "knight.fs");
 
@@ -208,13 +207,10 @@ int main()
 		projection = glm::perspective(glm::radians(camera.Zoom), 0.4f / 0.3f, 0.1f, 100.0f);
 
 		knightShader.use();
-		//glBindTexture(GL_TEXTURE_2D, texture);
 		knightShader.setVec3("lightColor", lightColor);
 		knightShader.setVec3("lightPos", lightPos);
 		knightShader.setMat4("projection", projection);
 		knightShader.setMat4("view", view);
-
-		// Мировое преобразование
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, vec3(0.0f, -1.0f, 0.4f));
 		model = glm::scale(model, glm::vec3(0.01f));

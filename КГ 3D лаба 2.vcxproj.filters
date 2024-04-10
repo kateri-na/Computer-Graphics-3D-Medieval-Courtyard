@@ -16,16 +16,22 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="texture.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="texture.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="cubemap.fs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="cubemap.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="knight.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="knight.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="lamp.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="lamp.vs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
